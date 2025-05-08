@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slope Game</title>
+  <style>
+    body { margin: 0; overflow: hidden; background-color: #222; }
+    canvas { display: block; margin: 0 auto; background: #111; }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Set canvas size
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Ball settings
+    const ball = {
+      radius: 15,
+      x: canvas.width / 2,
+      y: canvas.height - 30,
+      speed: 6,
+      dx: 0,
+      dy: 0,
+      gravity: 0.5
+    };
+
+    // Slope speed settings
+    let slopeSpeed = 1;
+    let isGameOver = false;
+
+    // User input for controls
+    const keys = {
+      left: false,
+      right: false,
+      up: false,
+      down: false
+    };
+
+    // Handle keyboard input (Arrow Keys and WASD)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+      if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+      if (e.key === 'ArrowUp' || e.key === 'w') keys.up = true;
+      if (e.key === 'ArrowDown' || e.key === 's') keys.down = true;
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+      if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+      if (e.key === 'ArrowUp' || e.key === 'w') keys.up = false;
+      if (e.key === 'ArrowDown' || e.key === 's') keys.down = false;
+    });
+
+    // Function to move the ball
+    function moveBall() {
+      // Apply gravity
+      ball.dy += ball.gravity;
+
+      // Ball movement controls
+      if (keys.left) ball.dx = -ball.speed;
+      if (keys.right) ball.dx = ball.speed;
+      if (keys.up) ball.dy = -ball.speed;
+      if (keys.down) ball.dy = ball.speed;
+
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+
+      // Wall collision
+      if (ball.x - ball.radius < 0 || ball.x + ball.radius > canvas.width) {
+        ball.dx = -ball.dx; // Reverse direction
+      }
+      if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
+        ball.dy = -ball.dy * 0.8; // Bounce off the ground (reduce speed)
+        if (ball.y + ball.radius > canvas.height) {
+          isGameOver = true;
+        }
+      }
+    }
+
+    // Draw the ball on canvas
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff9900';
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    // Draw the game over screen
+    function drawGameOver() {
+      ctx.fillStyle = 'red';
+      ctx.font = '50px Arial';
+      ctx.fillText('Game Over', canvas.width / 2 - 130, canvas.height / 2);
+    }
+
+    // Main game loop
+    function gameLoop() {
+      if (isGameOver) {
+        drawGameOver();
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+      moveBall(); // Move ball with physics
+      drawBall(); // Draw the ball
+
+      requestAnimationFrame(gameLoop); // Keep looping
+    }
+
+    // Start the game
+    gameLoop();
+  </script>
+</body>
+</html>
