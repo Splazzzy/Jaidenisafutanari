@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modded Snake Game</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    canvas { border: 2px solid black; display: block; margin: auto; background-color: #eee; }
+    .menu { text-align: center; margin: 20px; }
+    .button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+  </style>
+</head>
+<body>
+
+  <div class="menu">
+    <h2>Choose Your Snake Mode</h2>
+    <label for="speed">Speed:</label>
+    <select id="speed">
+      <option value="100">Slow</option>
+      <option value="75">Normal</option>
+      <option value="50">Fast</option>
+    </select><br><br>
+
+    <label for="color">Snake Color:</label>
+    <select id="color">
+      <option value="green">Green</option>
+      <option value="blue">Blue</option>
+      <option value="red">Red</option>
+      <option value="yellow">Yellow</option>
+    </select><br><br>
+
+    <label for="skin">Snake Skin:</label>
+    <select id="skin">
+      <option value="normal">Normal</option>
+      <option value="block">Blocky</option>
+      <option value="striped">Striped</option>
+    </select><br><br>
+
+    <label for="mode">Game Mode:</label>
+    <select id="mode">
+      <option value="normal">Normal</option>
+      <option value="obstacles">Obstacles</option>
+      <option value="invisible">Invisible Snake</option>
+      <option value="speedChange">Sudden Speed Change</option>
+      <option value="extraGrowth">Extra Growth</option>
+      <option value="gravity">Gravity Mode</option>
+      <option value="hardcore">Hardcore Mode</option>
+      <option value="random">Random Mode</option>
+    </select><br><br>
+
+    <button class="button" id="startBtn">Start Game</button>
+  </div>
+
+  <canvas id="gameCanvas" width="500" height="500"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('startBtn');
+    const speedSelect = document.getElementById('speed');
+    const colorSelect = document.getElementById('color');
+    const skinSelect = document.getElementById('skin');
+    const modeSelect = document.getElementById('mode');
+
+    let snake = [];
+    let food = {};
+    let direction = 'right';
+    let speed = 75;
+    let snakeColor = 'green';
+    let snakeSkin = 'normal';
+    let gameMode = 'normal';
+    let gameInterval;
+    let obstacles = [];
+    let gravity = false;
+    let isSpeedChanging = false;
+    let invisibleSnake = false;
+
+    // Initialize the snake and food
+    function initGame() {
+      snake = [{x: 250, y: 250}];
+      food = generateFood();
+      obstacles = gameMode === 'obstacles' ? generateObstacles() : [];
+      gravity = gameMode === 'gravity';
+      isSpeedChanging = gameMode === 'speedChange';
+      invisibleSnake = gameMode === 'invisible';
+      direction = 'right';
+      clearInterval(gameInterval);
+      gameInterval = setInterval(updateGame, speed);
+    }
+
+    function generateFood() {
+      return {
+        x: Math.floor(Math.random() * 20) * 25,
+        y: Math.floor(Math.random() * 20) * 25
+      };
+    }
+
+    function generateObstacles() {
+      let newObstacles = [];
+      for (let i = 0; i < 5; i++) {
+        newObstacles.push({
+          x: Math.floor(Math.random() * 20) * 25,
+          y: Math.floor(Math.random() * 20) * 25
+        });
+      }
+      return newObstacles;
+    }
+
+    // Handle key press for snake direction
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp' && direction !== 'down') direction = 'up';
+      if (e.key === 'ArrowDown' && direction !== 'up') direction = 'down';
+      if (e.key === 'ArrowLeft' && direction !== 'right') direction = 'left';
+      if (e.key === 'ArrowRight' && direction !== 'left') direction = 'right';
+    });
+
+    // Update the game (move snake, check collisions)
+    function updateGame() {
+      const head = Object.assign({}, snake[0]);
+
+      if (direction === 'up') head.y -= 25;
+      if (direction === 'down') head.y += 25;
+      if (direction === 'left') head.x -= 25;
+      if (direction === 'right') head.x += 25;
+
+      snake.unshift(head);
+
+      // Check for food collision
+      if (head.x === food.x && head.y === food.y) {
+        food = generateFood();
+        if (gameMode === 'extraGrowth') {
+          // Snake grows extra fast after eating food
+          snake.push(snake[snake.length - 1]);
+        }
+      } else {
+        snake.pop();
+      }
+
+      // Check for wall collisions or snake collisions
+      if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height || checkCollision(head) || checkObstacleCollision(head)) {
+        clearInterval(gameInterval);
+        alert('Game Over!');
+      }
+
+      // Random speed changes in "speedChange" mode
+      if (isSpeedChanging && Math.random() < 0.01) {
+        speed = Math.floor(Math.random() * 100) + 50;
+        clearInterval(gameInterval);
+        gameInterval = setInterval(updateGame, speed);
+      }
+
+      // Draw everything
+      drawGame();
+    }
+
+    function checkObstacleCollision(head) {
+      for (let i = 0; i < obstacles.length; i++) {
+        if (head.x === obstacles[i].x && head.y === obstacles[i].y) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // Check if the snake collides with itself
+    function checkCollision(head) {
+      for (let i = 1; i < snake.length; i++) {
+        if (head.x === snake[i].x && head.y === snake[i].y) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // Draw the game objects
+    function drawGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw the food
+      ctx.fillStyle = 'red';
+      ctx.fillRect(food.x, food.y, 25, 25);
+
+      // Draw obstacles
+      ctx.fillStyle = 'black';
+      for (let i = 0; i < obstacles.length; i++) {
+        ctx.fillRect(obstacles[i].x, obstacles[i].y, 25, 25);
+      }
+
+      // Draw the snake
+      for (let i = 0; i < snake.length; i++) {
+        ctx.fillStyle = invisibleSnake && i === 0 ? 'transparent' : snakeColor;
+        if (snakeSkin === 'block') {
+          ctx.fillRect(snake[i].x, snake[i].y, 25, 25);
+        } else if (snakeSkin === 'striped') {
+          ctx.fillRect(snake[i].x, snake[i].y, 25, 25);
+          ctx.fillStyle = 'black';
+          ctx.fillRect(snake[i].x + 5, snake[i].y + 5, 10, 10);
+        } else {
+          ctx.fillRect(snake[i].x, snake[i].y, 25, 25);
+        }
+      }
+    }
+
+    // Handle the start button click
+    startBtn.addEventListener('click', () => {
+      speed = parseInt(speedSelect.value);
+      snakeColor = colorSelect.value;
+      snakeSkin = skinSelect.value;
+      gameMode = modeSelect.value;
+      initGame();
+    });
+  </script>
+
+</body>
+</html>
